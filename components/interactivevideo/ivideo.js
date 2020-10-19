@@ -109,7 +109,7 @@
             //Show player controls
             player.controls = options.controls && options.controls === true;
 
-            if ($parent.is('[data-autoplay]')) {
+            if ($parent.is('[data-autoplay=true]')) {
                 player.autoplay = true;
             }
 
@@ -185,8 +185,6 @@
         }
 
         seek(time) {
-            console.log('Seeking at ' + time);
-            console.log(time);
             this.player.currentTime = time;
         }
 
@@ -278,11 +276,23 @@
                 const $actionEl = $(this.host);
                 const me = this;
                 if (this.wait) {
-                    $actionEl.one('tpy:component-completed', function(data) {
+                    const onComplete = function(data) {
                         me.stop();
                         resolve(data);
-                    });
-                    //$actionEl.show(); //ToDo:Is this the right start action?
+                    }
+                    const actid = this.host.getAttribute('data-act-id');
+                    if (actid) {
+                        const handler = function (ev, $el, data) {
+                            if (data.id == actid) {
+                                onComplete.apply(this, [data]);
+                                $(dhbgApp).off('jpit:activity:completed', handler);
+                            }
+                        };
+                        $(dhbgApp).on('jpit:activity:completed', handler)
+                    }
+                    else {
+                        $actionEl.one('tpy:component-completed', onComplete);
+                    }
                     this._display($actionEl);
                 }
                 else {
@@ -403,7 +413,6 @@
         }
 
         selectMarker() {
-            console.log('Marker selected');
             const me = this;
             me.ivideo.seek(me.triggerAt);
         }
@@ -743,12 +752,10 @@
         }
 
         seek(time) {
-            console.log(time);
             if (typeof time === 'string') {
                 time = durationToNumber(time);           
             }
             //this.videoPlayer.seek(time);
-            console.log(time);
             const player = this.videoPlayer;
             if (Math.floor(player.currentTime * 10) == Math.floor(time * 10)) { //Already in the marker time
                 return;
